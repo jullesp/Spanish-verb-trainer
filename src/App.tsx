@@ -44,7 +44,14 @@ function randomOf<T>(arr: T[]): T {
 }
 
 export default function App() {
+  // Student login
   const [activeStudent, setActiveStudent] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState<string>(""); // <- do NOT log in on each keystroke
+
+  const submitLogin = () => {
+    const name = nameInput.trim();
+    if (name.length >= 2) setActiveStudent(name);
+  };
 
   // MULTI-SELECT tenses
   const [tenses, setTenses] = useState<TenseKey[]>(["presente"]);
@@ -58,8 +65,8 @@ export default function App() {
   const [answer, setAnswer] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
 
+  // keep currentTense valid when selection changes
   useEffect(() => {
-    // keep currentTense valid
     if (!tenses.includes(currentTense)) {
       setCurrentTense(tenses[0] || "presente");
     }
@@ -69,7 +76,6 @@ export default function App() {
     setTenses((prev) => {
       const next = prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key];
       const ensured = next.length ? next : ["presente"];
-      // pick a visible current tense from selection
       setCurrentTense(randomOf(ensured));
       return ensured as TenseKey[];
     });
@@ -100,31 +106,43 @@ export default function App() {
     );
   };
 
+  /* ---------- Login screen ---------- */
   if (!activeStudent) {
     return (
       <main>
         <h1>Spanish Verb Trainer</h1>
         <div className="card">
           <h2>Student login</h2>
-          <input
-            type="text"
-            placeholder="Your name"
-            onChange={(e) => setActiveStudent(e.target.value.trim() || null)}
-          />
+          <div className="row">
+            <input
+              type="text"
+              placeholder="Your name (e.g. Mr Powell)"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitLogin()}
+            />
+            <button className="primary" type="button" onClick={submitLogin} disabled={nameInput.trim().length < 2}>
+              Enter
+            </button>
+          </div>
+          <small className="muted">Tip: we only log in when you press Enter or click “Enter”.</small>
         </div>
       </main>
     );
   }
 
+  /* ---------- Main app ---------- */
   return (
     <main>
       <h1>Spanish Verb Trainer</h1>
-      <p className="muted">Logged in as <strong>{activeStudent}</strong></p>
+      <p className="muted">
+        Logged in as <strong>{activeStudent}</strong>
+      </p>
 
       <div className="card">
         <h2>Select tenses (multi-select)</h2>
         <div className="row">
-          {(["presente","preterito","imperfecto","futuro","condicional"] as TenseKey[]).map((key) => {
+          {(["presente", "preterito", "imperfecto", "futuro", "condicional"] as TenseKey[]).map((key) => {
             const active = tenses.includes(key);
             return (
               <button
@@ -140,14 +158,14 @@ export default function App() {
             );
           })}
         </div>
-        <small className="muted">Selected: {tenses.map((t)=>tenseLabels[t]).join(", ")}</small>
+        <small className="muted">Selected: {tenses.map((t) => tenseLabels[t]).join(", ")}</small>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Conjugate</h2>
         <p>
-          Verb: <strong>{currentVerb}</strong> · Person: <strong>{persons[currentPerson]}</strong> ·{" "}
-          Tense: <strong>{tenseLabels[currentTense]}</strong>
+          Verb: <strong>{currentVerb}</strong> · Person: <strong>{persons[currentPerson]}</strong> · Tense:{" "}
+          <strong>{tenseLabels[currentTense]}</strong>
         </p>
 
         <input
@@ -159,8 +177,12 @@ export default function App() {
         />
 
         <div className="row" style={{ marginTop: 10 }}>
-          <button className="primary" type="button" onClick={checkAnswer}>Check</button>
-          <button type="button" onClick={newQuestion}>Next</button>
+          <button className="primary" type="button" onClick={checkAnswer}>
+            Check
+          </button>
+          <button type="button" onClick={newQuestion}>
+            Next
+          </button>
         </div>
 
         {feedback && <p style={{ marginTop: 12 }}>{feedback}</p>}
