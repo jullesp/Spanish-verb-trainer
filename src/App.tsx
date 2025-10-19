@@ -44,24 +44,33 @@ function randomOf<T>(arr: T[]): T {
 }
 
 export default function App() {
-  // Student login
+  /* --------- Student login (NO AUTO-LOGIN ON TYPING) --------- */
   const [activeStudent, setActiveStudent] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState<string>(""); // <- do NOT log in on each keystroke
+  const [classCode, setClassCode] = useState<string | null>(null);
+
+  // Controlled inputs for the login form
+  const [nameInput, setNameInput] = useState<string>("");
+  const [classInput, setClassInput] = useState<string>("");
 
   const submitLogin = () => {
     const name = nameInput.trim();
-    if (name.length >= 2) setActiveStudent(name);
+    const code = classInput.trim();
+    if (name.length >= 2) {
+      setActiveStudent(name); // <- only here, not on each keystroke
+      setClassCode(code || null);
+    }
   };
 
-  // MULTI-SELECT tenses
-  const [tenses, setTenses] = useState<TenseKey[]>(["presente"]);
+  /* --------- Multi-select tenses --------- */
+  type TensesState = TenseKey[];
+  const [tenses, setTenses] = useState<TensesState>(["presente"]);
 
-  // Current question state
+  /* --------- Current question --------- */
   const [currentVerb, setCurrentVerb] = useState<string>("hablar");
   const [currentPerson, setCurrentPerson] = useState<number>(0);
   const [currentTense, setCurrentTense] = useState<TenseKey>("presente");
 
-  // Answer + feedback
+  /* --------- Answer + feedback --------- */
   const [answer, setAnswer] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
 
@@ -121,11 +130,25 @@ export default function App() {
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitLogin()}
             />
-            <button className="primary" type="button" onClick={submitLogin} disabled={nameInput.trim().length < 2}>
+            <input
+              type="text"
+              placeholder="Class code (optional)"
+              value={classInput}
+              onChange={(e) => setClassInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitLogin()}
+            />
+            <button
+              className="primary"
+              type="button"
+              onClick={submitLogin}
+              disabled={nameInput.trim().length < 2}
+            >
               Enter
             </button>
           </div>
-          <small className="muted">Tip: we only log in when you press Enter or click “Enter”.</small>
+          <small className="muted">
+            Tip: we only log in when you press Enter or click “Enter”.
+          </small>
         </div>
       </main>
     );
@@ -137,6 +160,7 @@ export default function App() {
       <h1>Spanish Verb Trainer</h1>
       <p className="muted">
         Logged in as <strong>{activeStudent}</strong>
+        {classCode ? <> · Class: <strong>{classCode}</strong></> : null}
       </p>
 
       <div className="card">
