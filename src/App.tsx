@@ -1,16 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
-// All tenses available
-type TenseKey =
-  | "presente"
-  | "preterito"
-  | "imperfecto"
-  | "futuro"
-  | "condicional";
+/** Tenses we support */
+type TenseKey = "presente" | "preterito" | "imperfecto" | "futuro" | "condicional";
 
-// Example minimal verb data — replace with your real verb set
-const verbs: Record<string, any> = {
+/** Very small demo bank just to prove the behaviour */
+const verbs: Record<string, Record<TenseKey, string[]>> = {
   hablar: {
     presente: ["hablo", "hablas", "habla", "hablamos", "habláis", "hablan"],
     preterito: ["hablé", "hablaste", "habló", "hablamos", "hablasteis", "hablaron"],
@@ -34,15 +29,7 @@ const verbs: Record<string, any> = {
   },
 };
 
-// Persons
-const persons = [
-  "yo",
-  "tú",
-  "él/ella",
-  "nosotros",
-  "vosotros",
-  "ellos/ellas",
-];
+const persons = ["yo", "tú", "él/ella", "nosotros", "vosotros", "ellos/ellas"];
 
 const tenseLabels: Record<TenseKey, string> = {
   presente: "Presente",
@@ -52,28 +39,50 @@ const tenseLabels: Record<TenseKey, string> = {
   condicional: "Condicional",
 };
 
+function randomOf<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 export default function App() {
   const [activeStudent, setActiveStudent] = useState<string | null>(null);
-  const [tenses, setTenses] = useState<TenseKey[]>(["presente"]);
-  const [verb, setVerb] = useState("hablar");
-  const [personIndex, setPersonIndex] = useState(0);
-  const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
 
-  const toggleTense = (tense: TenseKey) => {
-    setTenses((prev) =>
-      prev.includes(tense)
-        ? prev.filter((t) => t !== tense)
-        : [...prev, tense]
-    );
+  // MULTI-SELECT tenses
+  const [tenses, setTenses] = useState<TenseKey[]>(["presente"]);
+
+  // Current question state (shows on screen)
+  const [currentVerb, setCurrentVerb] = useState<string>("hablar");
+  const [currentPerson, setCurrentPerson] = useState<number>(0);
+  const [currentTense, setCurrentTense] = useState<TenseKey>("presente");
+
+  // Answer + feedback
+  const [answer, setAnswer] = useState<string>("");
+  const [feedback, setFeedback] = useState<string>("");
+
+  // Ensure currentTense is always one of the selected tenses
+  useEffect(() => {
+    if (!tenses.includes(currentTense)) {
+      setCurrentTense(tenses[0] || "presente");
+    }
+  }, [tenses]); // eslint-disable-line
+
+  // Toggle tense chip + immediately pick a current tense from the new pool
+  const toggleTense = (key: TenseKey) => {
+    setTenses((prev) => {
+      const next = prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key];
+      // ensure there is at least one tense
+      const ensured = next.length ? next : ["presente"];
+      setCurrentTense(randomOf(ensured));
+      return ensured as TenseKey[];
+    });
   };
 
   const newQuestion = () => {
-    const verbsList = Object.keys(verbs);
-    const randomVerb = verbsList[Math.floor(Math.random() * verbsList.length)];
-    const randomPerson = Math.floor(Math.random() * persons.length);
-    setVerb(randomVerb);
-    setPersonIndex(randomPerson);
+    const v = randomOf(Object.keys(verbs));
+    const p = Math.floor(Math.random() * persons.length);
+    const t = randomOf(tenses);
+    setCurrentVerb(v);
+    setCurrentPerson(p);
+    setCurrentTense(t);
     setAnswer("");
     setFeedback("");
   };
@@ -83,76 +92,75 @@ export default function App() {
       setFeedback("Please enter your name first.");
       return;
     }
-
-    const randomTense =
-      tenses[Math.floor(Math.random() * tenses.length)] || "presente";
-    const expected = verbs[verb][randomTense][personIndex];
-    if (answer.trim().toLowerCase() === expected.toLowerCase()) {
-      setFeedback(
-        `✅ Correct (${verb} – ${persons[personIndex]} – ${tenseLabels[randomTense]})`
-      );
-    } else {
-      setFeedback(
-        `❌ Incorrect. Expected "${expected}" (${tenseLabels[randomTense]})`
-      );
-    }
+    const expected = verbs[currentVerb][currentTense][currentPerson];
+    const ok = answer.trim().toLowerCase() === expected.toLowerCase();
+    setFeedback(
+      ok
+        ? `✅ Correct (${currentVerb} – ${persons[currentPerson]} – ${tenseLabels[currentTense]})`
+        : `❌ Incorrect. Expected "${expected}" (${tenseLabels[currentTense]})`
+    );
   };
 
-  if (!activeStudent)
+  if (!activeStudent) {
     return (
       <main>
         <h1>Spanish Verb Trainer</h1>
-        <p>Enter your name to start:</p>
-        <input
-          type="text"
-          onChange={(e) => setActiveStudent(e.target.value)}
-          placeholder="Your name"
-        />
+        <div className="card">
+          <h2>Student login</h2>
+          <input
+            type="text"
+            placeholder="Your name"
+            onChange={(e) => setActiveStudent(e.target.value.trim() || null)}
+          />
+        </div>
       </main>
     );
+  }
 
   return (
     <main>
       <h1>Spanish Verb Trainer</h1>
-      <p>Logged in as: <strong>{activeStudent}</strong></p>
+      <p className="muted">Logged in as <strong>{activeStudent}</strong></p>
 
       <div className="card">
-        <h2>Select Tenses</h2>
+        <h2>Select tenses (multi-select)</h2>
         <div className="row">
-          {(
-            [
-              ["presente", "Presente"],
-              ["preterito", "Pretérito"],
-              ["imperfecto", "Imperfecto"],
-              ["futuro", "Futuro"],
-              ["condicional", "Condicional"],
-            ] as [TenseKey, string][]
-          ).map(([key, label]) => (
+          {(["presente","preterito","imperfecto","futuro","condicional"] as TenseKey[]).map((key) => (
             <button
               key={key}
               type="button"
               className={`chip ${tenses.includes(key) ? "active" : ""}`}
               onClick={() => toggleTense(key)}
             >
-              {label}
+              {tenseLabels[key]}
             </button>
           ))}
         </div>
+        <small className="muted">Selected: {tenses.map((t)=>tenseLabels[t]).join(", ")}</small>
       </div>
 
-      <div className="card" style={{ marginTop: 20 }}>
+      <div className="card" style={{ marginTop: 16 }}>
         <h2>Conjugate</h2>
         <p>
-          <strong>{persons[personIndex]}</strong> — <strong>{verb}</strong>
+          Verb: <strong>{currentVerb}</strong> · Person: <strong>{persons[currentPerson]}</strong> ·
+          {" "}Tense: <strong>{tenseLabels[currentTense]}</strong>
         </p>
 
         <input
           type="text"
-          placeholder="Type conjugation"
+          placeholder="Type the conjugation"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && checkAnswer()}
         />
 
         <div className="row" style={{ marginTop: 10 }}>
-          <button className="primary" onClick={checkAnswer}>
+          <button className="primary" type="button" onClick={checkAnswer}>Check</button>
+          <button type="button" onClick={newQuestion}>Next</button>
+        </div>
+
+        {feedback && <p style={{ marginTop: 12 }}>{feedback}</p>}
+      </div>
+    </main>
+  );
+}
