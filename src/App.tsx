@@ -4,7 +4,7 @@ import "./App.css";
 /** Tenses we support */
 type TenseKey = "presente" | "preterito" | "imperfecto" | "futuro" | "condicional";
 
-/** Very small demo bank just to prove the behaviour */
+/** Minimal demo data */
 const verbs: Record<string, Record<TenseKey, string[]>> = {
   hablar: {
     presente: ["hablo", "hablas", "habla", "hablamos", "habláis", "hablan"],
@@ -49,7 +49,7 @@ export default function App() {
   // MULTI-SELECT tenses
   const [tenses, setTenses] = useState<TenseKey[]>(["presente"]);
 
-  // Current question state (shows on screen)
+  // Current question state
   const [currentVerb, setCurrentVerb] = useState<string>("hablar");
   const [currentPerson, setCurrentPerson] = useState<number>(0);
   const [currentTense, setCurrentTense] = useState<TenseKey>("presente");
@@ -58,19 +58,18 @@ export default function App() {
   const [answer, setAnswer] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
 
-  // Ensure currentTense is always one of the selected tenses
   useEffect(() => {
+    // keep currentTense valid
     if (!tenses.includes(currentTense)) {
       setCurrentTense(tenses[0] || "presente");
     }
   }, [tenses]); // eslint-disable-line
 
-  // Toggle tense chip + immediately pick a current tense from the new pool
   const toggleTense = (key: TenseKey) => {
     setTenses((prev) => {
       const next = prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key];
-      // ensure there is at least one tense
       const ensured = next.length ? next : ["presente"];
+      // pick a visible current tense from selection
       setCurrentTense(randomOf(ensured));
       return ensured as TenseKey[];
     });
@@ -125,16 +124,21 @@ export default function App() {
       <div className="card">
         <h2>Select tenses (multi-select)</h2>
         <div className="row">
-          {(["presente","preterito","imperfecto","futuro","condicional"] as TenseKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`chip ${tenses.includes(key) ? "active" : ""}`}
-              onClick={() => toggleTense(key)}
-            >
-              {tenseLabels[key]}
-            </button>
-          ))}
+          {(["presente","preterito","imperfecto","futuro","condicional"] as TenseKey[]).map((key) => {
+            const active = tenses.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className="chip"
+                data-active={active}
+                aria-pressed={active}
+                onClick={() => toggleTense(key)}
+              >
+                {tenseLabels[key]}
+              </button>
+            );
+          })}
         </div>
         <small className="muted">Selected: {tenses.map((t)=>tenseLabels[t]).join(", ")}</small>
       </div>
@@ -142,8 +146,8 @@ export default function App() {
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Conjugate</h2>
         <p>
-          Verb: <strong>{currentVerb}</strong> · Person: <strong>{persons[currentPerson]}</strong> ·
-          {" "}Tense: <strong>{tenseLabels[currentTense]}</strong>
+          Verb: <strong>{currentVerb}</strong> · Person: <strong>{persons[currentPerson]}</strong> ·{" "}
+          Tense: <strong>{tenseLabels[currentTense]}</strong>
         </p>
 
         <input
